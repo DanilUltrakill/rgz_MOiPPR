@@ -5,6 +5,7 @@ from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib import cm
+from mpl_toolkits.mplot3d import Axes3D
 
 class OptimizationApp(tk.Tk):
     def __init__(self):
@@ -61,14 +62,35 @@ class OptimizationApp(tk.Tk):
         self.button_add_constraint = tk.Button(self, text="Add Constraint", command=self.add_constraint)
         self.button_add_constraint.pack()
         
+        # Кнопка для удаления последнего ограничения
+        self.button_remove_constraint = tk.Button(self, text="Remove Constraint", command=self.remove_constraint)
+        self.button_remove_constraint.pack()
+        
         # Кнопка для начала оптимизации
-        self.button_optimize = tk.Button(self, text="Optimize", command=self.optimize)
+        self.button_optimize = tk.Button(self, text="Calculate", command=self.optimize)
         self.button_optimize.pack()
+        
+        # Кнопка для отображения графика
+        self.button_show_graph = tk.Button(self, text="Show Graph", command=self.show_graph)
+        self.button_show_graph.pack()
+        
+        # Кнопка для штриховки области допустимых значений
+        self.button_shade_area = tk.Button(self, text="Shade Feasible Area", command=self.shade_area)
+        self.button_shade_area.pack()
+        
+        # Опциональная кнопка для отображения 3D-модели
+        self.button_show_3d = tk.Button(self, text="Show 3D Model", command=self.show_3d_model)
+        self.button_show_3d.pack()
     
     def add_constraint(self):
         entry_constraint = tk.Entry(self, width=50)
         entry_constraint.pack()
         self.constraint_entries.append(entry_constraint)
+    
+    def remove_constraint(self):
+        if self.constraint_entries:
+            entry_constraint = self.constraint_entries.pop()
+            entry_constraint.pack_forget()
     
     def func(self, x):
         return eval(self.entry_func.get(), {}, {"x": x})
@@ -87,12 +109,11 @@ class OptimizationApp(tk.Tk):
                 expr, bound = constraint.split("==")
                 constraints.append({'type': 'eq', 'fun': lambda x, expr=expr, bound=float(bound): eval(expr, {}, {"x": x}) - float(bound)})
             else:
-                # Другие типы ограничений можно добавить здесь при необходимости
                 pass
         return constraints
     
     def optimize(self):
-        initial_guess = np.array([float(x) for x in self.entry_initial.get().split(",")])  # Парсинг начального предположения
+        initial_guess = np.array([float(x) for x in self.entry_initial.get().split(",")])
         
         constraints = self.parse_constraints()
         
@@ -126,7 +147,7 @@ class OptimizationApp(tk.Tk):
         label_iterations = tk.Label(results_window, text=f"Number of iterations: {self.iteration}")
         label_iterations.pack()
         
-        figure = plt.Figure(figsize=(10, 10), dpi=100)  # Увеличиваем размеры графика
+        figure = plt.Figure(figsize=(10, 8), dpi=100)  # Увеличиваем размеры графика
         ax = figure.add_subplot(111)
         
         # Добавление тулбара над графиком
@@ -169,20 +190,23 @@ class OptimizationApp(tk.Tk):
             if "<=" in constraint:
                 expr, bound = constraint.split("<=")
                 expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
-                ax.contour(X, Y, eval(expr, {}, {"X": X, "Y": Y}), levels=[float(bound)], colors='r')
-                constraint_legend.append(f"{constraint}")
+                Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
+                ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors='r')
+                constraint_legend.append(constraint)
             elif ">=" in constraint:
                 expr, bound = constraint.split(">=")
                 expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
-                ax.contour(X, Y, eval(expr, {}, {"X": X, "Y": Y}), levels=[float(bound)], colors='r')
-                constraint_legend.append(f"{constraint}")
+                Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
+                ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors='r')
+                constraint_legend.append(constraint)
             elif "==" in constraint:
                 expr, bound = constraint.split("==")
                 expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
-                ax.contour(X, Y, eval(expr, {}, {"X": X, "Y": Y}), levels=[float(bound)], colors='r')
-                constraint_legend.append(f"{constraint}")
+                Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
+                ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors='r')
+                constraint_legend.append(constraint)
         
-        # Отображение траектории сходимости
+        # Отображение пути оптимизации
         intermediate_steps = np.array(self.intermediate_steps)
         ax.plot(intermediate_steps[:, 0], intermediate_steps[:, 1], "bo-", label="Convergence Path")
         
@@ -203,6 +227,99 @@ class OptimizationApp(tk.Tk):
         ax.grid(True)
         
         canvas.draw()
+
+    def show_graph(self):
+        figure = plt.figure(figsize=(10, 8), dpi=100)
+        ax = figure.add_subplot(111)
+        
+        x = np.linspace(-10, 10, 400)
+        y = np.linspace(-10, 10, 400)
+        X, Y = np.meshgrid(x, y)
+        
+        func_str = self.entry_func.get()
+        Z = eval(func_str.replace("x[0]", "X").replace("x[1]", "Y"), {}, {"X": X, "Y": Y})
+        
+        ax.contour(X, Y, Z, levels=25, cmap=cm.viridis)
+        
+        # Отображение ограничений на графике
+        constraint_legend = []
+        for entry in self.constraint_entries:
+            constraint = entry.get()
+            if "<=" in constraint:
+                expr, bound = constraint.split("<=")
+                expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
+                Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
+                ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors='r')
+                constraint_legend.append(constraint)
+            elif ">=" in constraint:
+                expr, bound = constraint.split(">=")
+                expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
+                Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
+                ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors='r')
+                constraint_legend.append(constraint)
+            elif "==" in constraint:
+                expr, bound = constraint.split("==")
+                expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
+                Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
+                ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors='r')
+                constraint_legend.append(constraint)
+        
+        ax.set_xlabel("$x_1$")
+        ax.set_ylabel("$x_2$")
+        ax.set_aspect('equal', 'box')
+        ax.legend()
+        ax.set_title("Function Graph")
+        ax.grid(True)
+        
+        plt.show()
+    
+    def shade_area(self):
+        figure = plt.figure(figsize=(10, 8), dpi=100)
+        ax = figure.add_subplot(111)
+        
+        x = np.linspace(-10, 10, 400)
+        y = np.linspace(-10, 10, 400)
+        X, Y = np.meshgrid(x, y)
+        feasible_x = []
+        feasible_y = []
+        
+        for i in range(len(x)):
+            for j in range(len(y)):
+                point = np.array([X[i, j], Y[i, j]])
+                if all(constraint['fun'](point) >= 0 for constraint in self.parse_constraints() if constraint['type'] == 'ineq') and \
+                   all(constraint['fun'](point) == 0 for constraint in self.parse_constraints() if constraint['type'] == 'eq'):
+                    feasible_x.append(point[0])
+                    feasible_y.append(point[1])
+        
+        ax.plot(feasible_x, feasible_y, 'bo')
+        
+        ax.set_xlabel("$x_1$")
+        ax.set_ylabel("$x_2$")
+        ax.set_aspect('equal', 'box')
+        ax.set_title("Feasible Area")
+        ax.grid(True)
+        
+        plt.show()
+    
+    def show_3d_model(self):
+        figure = plt.figure(figsize=(10, 8), dpi=100)
+        ax = figure.add_subplot(111, projection='3d')
+        
+        x = np.linspace(-10, 10, 400)
+        y = np.linspace(-10, 10, 400)
+        X, Y = np.meshgrid(x, y)
+        
+        func_str = self.entry_func.get()
+        Z = eval(func_str.replace("x[0]", "X").replace("x[1]", "Y"), {}, {"X": X, "Y": Y})
+        
+        ax.plot_surface(X, Y, Z, cmap=cm.viridis, edgecolor='none')
+        
+        ax.set_xlabel("$x_1$")
+        ax.set_ylabel("$x_2$")
+        ax.set_zlabel("$f(x)$")
+        ax.set_title("3D Model")
+        
+        plt.show()
 
 if __name__ == "__main__":
     app = OptimizationApp()
