@@ -13,6 +13,8 @@ class OptimizationApp(tk.Tk):
         self.geometry("600x800")
 
         self.constraints = []
+        self.result_min = None
+        self.result_max = None
         self.create_widgets()
 
     def create_widgets(self):
@@ -57,7 +59,7 @@ class OptimizationApp(tk.Tk):
         self.button_remove_constraint.pack()
 
         # Кнопка для начала оптимизации
-        self.button_optimize = tk.Button(self, text="Calculate", command=self.calculate)
+        self.button_optimize = tk.Button(self, text="Calculate", command=self.open_results_window)
         self.button_optimize.pack()
 
         # Кнопка для отображения графика
@@ -98,87 +100,74 @@ class OptimizationApp(tk.Tk):
                 pass
         return constraints
 
-    def optimize(self, opt_type):
+    def optimize(self, optimization_type):
         initial_guess = np.array([float(x) for x in self.entry_initial.get().split(",")])
-
         constraints = self.parse_constraints()
+        self.intermediate_steps = [initial_guess]
+        self.iteration = 0
 
-        if opt_type == "min":
-            self.intermediate_steps_min = [initial_guess]
-            self.iteration_min = 0
+        def callback(xk):
+            print(f"Iteration {self.iteration}: x = {xk}; f(x) = {self.func(xk)}")
+            self.intermediate_steps.append(xk.copy())
+            self.iteration += 1
 
-            def callback_min(xk):
-                self.intermediate_steps_min.append(xk.copy())
-                self.iteration_min += 1
-
-            self.result_min = minimize(self.func, initial_guess, method='SLSQP', constraints=constraints, tol=0.001, callback=callback_min)
-
+        if optimization_type == "min":
+            result = minimize(self.func, initial_guess, method='SLSQP', constraints=constraints, tol=0.001, callback=callback)
         else:
             def neg_func(x):
                 return -self.func(x)
+            result = minimize(neg_func, initial_guess, method='SLSQP', constraints=constraints, tol=0.001, callback=callback)
 
-            self.intermediate_steps_max = [initial_guess]
-            self.iteration_max = 0
+        return result
 
-            def callback_max(xk):
-                self.intermediate_steps_max.append(xk.copy())
-                self.iteration_max += 1
-
-            self.result_max = minimize(neg_func, initial_guess, method='SLSQP', constraints=constraints, tol=0.001, callback=callback_max)
-
-    def calculate(self):
-        self.optimize("min")
-        self.optimize("max")
+    def open_results_window(self):
+        self.result_min = self.optimize("min")
+        self.result_max = self.optimize("max")
 
         results_window = tk.Toplevel(self)
         results_window.title("Optimization Results")
         results_window.geometry("800x600")
 
-        result_text_min = ""
-        result_text_max = ""
-
+        result_text = ""
         if self.result_min.success:
-            result_text_min += f"Minimum found at: {self.result_min.x}\n"
-            result_text_min += f"Function value: {self.func(self.result_min.x)}\n"
+            result_text += f"Minimum found at: {self.result_min.x}\nFunction value: {self.func(self.result_min.x)}\n\n"
         else:
-            result_text_min += "Minimum optimization failed.\n"
+            result_text += "Minimum optimization failed.\n\n"
 
         if self.result_max.success:
-            result_text_max += f"Maximum found at: {self.result_max.x}\n"
-            result_text_max += f"Function value: {-self.result_max.fun}\n"
+            result_text += f"Maximum found at: {self.result_max.x}\nFunction value: {self.func(self.result_max.x)}\n"
         else:
-            result_text_max += "Maximum optimization failed.\n"
+            result_text += "Maximum optimization failed.\n"
 
-        results_label_min = tk.Label(results_window, text=result_text_min)
-        results_label_min.grid(row=0, column=0, padx=10, pady=10)
+        results_label = tk.Label(results_window, text=result_text)
+        results_label.pack()
 
-        results_label_max = tk.Label(results_window, text=result_text_max)
-        results_label_max.grid(row=0, column=1, padx=10, pady=10)
+        show_path_button = tk.Button(results_window, text="Show Solution Path", command=self.show_solution_path)
+        show_path_button.pack()
 
-        show_path_button = tk.Button(results_window, text="Show Solution Path", command=lambda: self.show_solution_path(results_window))
-        show_path_button.grid(row=1, column=0, columnspan=2, pady=10)
+    def show_solution_path(self):
+        path_window = tk.Toplevel(self)
+        path_window.title("Solution Path")
+        path_window.geometry("800x600")
 
-    def show_solution_path(self, parent_window):
-        min_path_text = ""
-        max_path_text = ""
+        fig, ax = plt.subplots()
 
-        if hasattr(self, 'intermediate_steps_min'):
-            for i, step in enumerate(self.intermediate_steps_min):
-                min_path_text += f"Iteration {i}: x = {step}; f(x) = {self.func(step)}\n"
-        else:
-            min_path_text = "Не удалось найти экстремум\n"
+        x_path = [step[0] for step in self.intermediate_steps]
+        y_path = [step[1] for step in self.intermediate_steps]
 
-        if hasattr(self, 'intermediate_steps_max'):
-            for i, step in enumerate(self.intermediate_steps_max):
-                max_path_text += f"Iteration {i}: x = {step}; f(x) = {self.func(step)}\n"
-        else:
-            max_path_text = "Не удалось найти экстремум\n"
+        ax.plot(x_path, y_path, 'bo-', label="Solution Path")
+        ax.set_xlabel("$x_1$")
+        ax.set_ylabel("$x_2$")
+        ax.set_title("Solution Path")
+        ax.grid(True)
+        ax.legend()
 
-        min_path_label = tk.Label(parent_window, text=min_path_text, justify=tk.LEFT)
-        min_path_label.grid(row=2, column=0, padx=10, pady=10)
-
-        max_path_label = tk.Label(parent_window, text=max_path_text, justify=tk.LEFT)
-        max_path_label.grid(row=2, column=1, padx=10, pady=10)
+        canvas = FigureCanvasTkAgg(fig, master=path_window)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        toolbar = NavigationToolbar2Tk(canvas, path_window)
+        toolbar.update()
+        canvas._tkcanvas.pack(fill=tk.BOTH, expand=True)
 
     def open_graph_window(self):
         graph_window = tk.Toplevel(self)
@@ -188,34 +177,31 @@ class OptimizationApp(tk.Tk):
         self.figure = plt.Figure(figsize=(10, 8), dpi=100)
         self.ax = self.figure.add_subplot(111)
 
-        toolbar = NavigationToolbar2Tk(FigureCanvasTkAgg(self.figure, graph_window), graph_window)
-        toolbar.update()
-        toolbar.pack(side=tk.TOP, fill=tk.X)
-
         self.canvas = FigureCanvasTkAgg(self.figure, graph_window)
         self.canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
         self.plot_function_and_constraints()
+
+        toolbar = NavigationToolbar2Tk(self.canvas, graph_window)
+        toolbar.update()
+        self.canvas._tkcanvas.pack(fill=tk.BOTH, expand=True)
 
         shade_feasible_var = tk.BooleanVar()
         show_minimum_var = tk.BooleanVar()
         show_maximum_var = tk.BooleanVar()
         show_convergence_var = tk.BooleanVar()
 
-        options_frame = tk.Frame(graph_window)
-        options_frame.pack(side=tk.RIGHT, fill=tk.Y)
+        shade_feasible_cb = tk.Checkbutton(graph_window, text="Shade Feasible Area", variable=shade_feasible_var, command=lambda: self.update_graph(shade_feasible_var, show_minimum_var, show_maximum_var, show_convergence_var))
+        shade_feasible_cb.pack()
 
-        shade_feasible_rb = tk.Radiobutton(options_frame, text="Shade Feasible Region", variable=shade_feasible_var, command=lambda: self.update_graph(shade_feasible_var, show_minimum_var, show_maximum_var, show_convergence_var))
-        shade_feasible_rb.pack(anchor=tk.W)
-        
-        show_minimum_rb = tk.Radiobutton(options_frame, text="Show Minimum Point", variable=show_minimum_var, command=lambda: self.update_graph(shade_feasible_var, show_minimum_var, show_maximum_var, show_convergence_var))
-        show_minimum_rb.pack(anchor=tk.W)
+        show_minimum_cb = tk.Checkbutton(graph_window, text="Show Minimum", variable=show_minimum_var, command=lambda: self.update_graph(shade_feasible_var, show_minimum_var, show_maximum_var, show_convergence_var))
+        show_minimum_cb.pack()
 
-        show_maximum_rb = tk.Radiobutton(options_frame, text="Show Maximum Point", variable=show_maximum_var, command=lambda: self.update_graph(shade_feasible_var, show_minimum_var, show_maximum_var, show_convergence_var))
-        show_maximum_rb.pack(anchor=tk.W)
+        show_maximum_cb = tk.Checkbutton(graph_window, text="Show Maximum", variable=show_maximum_var, command=lambda: self.update_graph(shade_feasible_var, show_minimum_var, show_maximum_var, show_convergence_var))
+        show_maximum_cb.pack()
 
-        show_convergence_rb = tk.Radiobutton(options_frame, text="Show Convergence Paths", variable=show_convergence_var, command=lambda: self.update_graph(shade_feasible_var, show_minimum_var, show_maximum_var, show_convergence_var))
-        show_convergence_rb.pack(anchor=tk.W)
+        show_convergence_cb = tk.Checkbutton(graph_window, text="Show Convergence Path", variable=show_convergence_var, command=lambda: self.update_graph(shade_feasible_var, show_minimum_var, show_maximum_var, show_convergence_var))
+        show_convergence_cb.pack()
 
     def plot_function_and_constraints(self):
         self.ax.clear()
@@ -227,9 +213,7 @@ class OptimizationApp(tk.Tk):
         func_str = self.entry_func.get()
         Z = eval(func_str.replace("x[0]", "X").replace("x[1]", "Y"), {}, {"X": X, "Y": Y})
 
-        cs = self.ax.contour(X, Y, Z, levels=25, cmap=cm.viridis)
-        self.ax.clabel(cs, inline=1, fontsize=10)
-        cs.collections[0].set_label("Target Function")
+        self.ax.contour(X, Y, Z, levels=25, cmap=cm.viridis)
 
         for entry in self.constraint_entries:
             constraint = entry.get()
@@ -237,24 +221,23 @@ class OptimizationApp(tk.Tk):
                 expr, bound = constraint.split("<=")
                 expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
                 Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
-                self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors='r', label=f"{constraint}")
+                self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors='r')
             elif ">=" in constraint:
                 expr, bound = constraint.split(">=")
                 expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
                 Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
-                self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors='r', label=f"{constraint}")
+                self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors='r')
             elif "==" in constraint:
                 expr, bound = constraint.split("==")
                 expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
                 Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
-                self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors='r', label=f"{constraint}")
+                self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors='r')
 
         self.ax.set_xlabel("$x_1$")
         self.ax.set_ylabel("$x_2$")
         self.ax.set_aspect('equal', 'box')
         self.ax.set_title("Function Graph")
         self.ax.grid(True)
-        self.ax.legend()
 
         self.canvas.draw()
 
@@ -264,19 +247,21 @@ class OptimizationApp(tk.Tk):
         if shade_feasible_var.get():
             self.shade_feasible_area()
 
-        if show_minimum_var.get() and hasattr(self, 'result_min') and self.result_min.success:
-            self.ax.plot(self.result_min.x[0], self.result_min.x[1], 'ro', label="Minimum Point")
+        if show_minimum_var.get():
+            if not self.result_min:
+                self.result_min = self.optimize("min")
+            if self.result_min.success:
+                self.ax.plot(self.result_min.x[0], self.result_min.x[1], 'ro', markersize=10, label="Minimum")
 
-        if show_maximum_var.get() and hasattr(self, 'result_max') and self.result_max.success:
-            self.ax.plot(self.result_max.x[0], self.result_max.x[1], 'go', label="Maximum Point")
+        if show_maximum_var.get():
+            if not self.result_max:
+                self.result_max = self.optimize("max")
+            if self.result_max.success:
+                self.ax.plot(self.result_max.x[0], self.result_max.x[1], 'go', markersize=10, label="Maximum")
 
-        if show_convergence_var.get() and hasattr(self, 'intermediate_steps_min'):
-            intermediate_steps = np.array(self.intermediate_steps_min)
-            self.ax.plot(intermediate_steps[:, 0], intermediate_steps[:, 1], 'r--', label="Minimization Path")
-
-        if show_convergence_var.get() and hasattr(self, 'intermediate_steps_max'):
-            intermediate_steps = np.array(self.intermediate_steps_max)
-            self.ax.plot(intermediate_steps[:, 0], intermediate_steps[:, 1], 'g--', label="Maximization Path")
+        if show_convergence_var.get():
+            intermediate_steps = np.array(self.intermediate_steps)
+            self.ax.plot(intermediate_steps[:, 0], intermediate_steps[:, 1], 'bo-', label="Convergence Path")
 
         self.ax.legend()
         self.canvas.draw()
@@ -315,8 +300,7 @@ class OptimizationApp(tk.Tk):
         func_str = self.entry_func.get()
         Z = eval(func_str.replace("x[0]", "X").replace("x[1]", "Y"), {}, {"X": X, "Y": Y})
 
-        surf = ax.plot_surface(X, Y, Z, cmap=cm.viridis, edgecolor='none', alpha=0.7)
-        fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5, label="Target Function")
+        ax.plot_surface(X, Y, Z, cmap=cm.viridis, edgecolor='none')
 
         for entry in self.constraint_entries:
             constraint = entry.get()
@@ -324,29 +308,22 @@ class OptimizationApp(tk.Tk):
                 expr, bound = constraint.split("<=")
                 expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
                 Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
-                ax.contour3D(X, Y, Z_constraint, levels=[float(bound)], colors='r', offset=Z.min())
+                ax.contour3D(X, Y, Z_constraint, levels=[float(bound)], colors='r')
             elif ">=" in constraint:
                 expr, bound = constraint.split(">=")
                 expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
                 Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
-                ax.contour3D(X, Y, Z_constraint, levels=[float(bound)], colors='r', offset=Z.min())
+                ax.contour3D(X, Y, Z_constraint, levels=[float(bound)], colors='r')
             elif "==" in constraint:
                 expr, bound = constraint.split("==")
                 expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
                 Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
-                ax.contour3D(X, Y, Z_constraint, levels=[float(bound)], colors='r', offset=Z.min())
-
-        if self.result_min.success:
-            ax.scatter(self.result_min.x[0], self.result_min.x[1], self.func(self.result_min.x), color='r', s=50, label="Minimum")
-
-        if self.result_max.success:
-            ax.scatter(self.result_max.x[0], self.result_max.x[1], -self.result_max.fun, color='g', s=50, label="Maximum")
+                ax.contour3D(X, Y, Z_constraint, levels=[float(bound)], colors='r')
 
         ax.set_xlabel("$x_1$")
         ax.set_ylabel("$x_2$")
         ax.set_zlabel("$f(x)$")
         ax.set_title("3D Model")
-        ax.legend()
 
         plt.show()
 
