@@ -5,6 +5,7 @@ from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib import cm
+import itertools
 
 class OptimizationApp(tk.Tk):
     def __init__(self):
@@ -188,6 +189,26 @@ class OptimizationApp(tk.Tk):
         self.figure = plt.Figure(figsize=(10, 8), dpi=100)
         self.ax = self.figure.add_subplot(111)
 
+        options_frame = tk.Frame(graph_window)
+        options_frame.pack(side=tk.TOP, fill=tk.X)
+
+        shade_feasible_var = tk.BooleanVar()
+        show_minimum_var = tk.BooleanVar()
+        show_maximum_var = tk.BooleanVar()
+        show_convergence_var = tk.BooleanVar()
+
+        shade_feasible_cb = tk.Checkbutton(options_frame, text="Shade Feasible Region", variable=shade_feasible_var, command=lambda: self.update_graph(shade_feasible_var, show_minimum_var, show_maximum_var, show_convergence_var))
+        shade_feasible_cb.pack(side=tk.LEFT)
+
+        show_minimum_cb = tk.Checkbutton(options_frame, text="Show Minimum", variable=show_minimum_var, command=lambda: self.update_graph(shade_feasible_var, show_minimum_var, show_maximum_var, show_convergence_var))
+        show_minimum_cb.pack(side=tk.LEFT)
+
+        show_maximum_cb = tk.Checkbutton(options_frame, text="Show Maximum", variable=show_maximum_var, command=lambda: self.update_graph(shade_feasible_var, show_minimum_var, show_maximum_var, show_convergence_var))
+        show_maximum_cb.pack(side=tk.LEFT)
+
+        show_convergence_cb = tk.Checkbutton(options_frame, text="Show Convergence", variable=show_convergence_var, command=lambda: self.update_graph(shade_feasible_var, show_minimum_var, show_maximum_var, show_convergence_var))
+        show_convergence_cb.pack(side=tk.LEFT)
+
         toolbar = NavigationToolbar2Tk(FigureCanvasTkAgg(self.figure, graph_window), graph_window)
         toolbar.update()
         toolbar.pack(side=tk.TOP, fill=tk.X)
@@ -197,158 +218,138 @@ class OptimizationApp(tk.Tk):
 
         self.plot_function_and_constraints()
 
-        shade_feasible_var = tk.BooleanVar()
-        show_minimum_var = tk.BooleanVar()
-        show_maximum_var = tk.BooleanVar()
-        show_convergence_var = tk.BooleanVar()
-
-        options_frame = tk.Frame(graph_window)
-        options_frame.pack(side=tk.RIGHT, fill=tk.Y)
-
-        shade_feasible_rb = tk.Radiobutton(options_frame, text="Shade Feasible Region", variable=shade_feasible_var, command=lambda: self.update_graph(shade_feasible_var, show_minimum_var, show_maximum_var, show_convergence_var))
-        shade_feasible_rb.pack(anchor=tk.W)
-        
-        show_minimum_rb = tk.Radiobutton(options_frame, text="Show Minimum Point", variable=show_minimum_var, command=lambda: self.update_graph(shade_feasible_var, show_minimum_var, show_maximum_var, show_convergence_var))
-        show_minimum_rb.pack(anchor=tk.W)
-
-        show_maximum_rb = tk.Radiobutton(options_frame, text="Show Maximum Point", variable=show_maximum_var, command=lambda: self.update_graph(shade_feasible_var, show_minimum_var, show_maximum_var, show_convergence_var))
-        show_maximum_rb.pack(anchor=tk.W)
-
-        show_convergence_rb = tk.Radiobutton(options_frame, text="Show Convergence Paths", variable=show_convergence_var, command=lambda: self.update_graph(shade_feasible_var, show_minimum_var, show_maximum_var, show_convergence_var))
-        show_convergence_rb.pack(anchor=tk.W)
-
     def plot_function_and_constraints(self):
         self.ax.clear()
+        
+        x_vals = np.linspace(-5, 5, 400)
+        y_vals = np.linspace(-5, 5, 400)
+        X, Y = np.meshgrid(x_vals, y_vals)
+        Z = np.array([[self.func([x, y]) for x in x_vals] for y in y_vals])
+        
+        contour_levels = np.linspace(np.min(Z), np.max(Z), 10)  # Несколько уровней для легенды
+        contour_set = self.ax.contour(X, Y, Z, levels=contour_levels, cmap=cm.viridis)
+        self.ax.set_xlim(-5, 5)
+        self.ax.set_ylim(-5, 5)
+        self.ax.set_xlabel("X1")
+        self.ax.set_ylabel("X2")
 
-        x = np.linspace(-10, 10, 400)
-        y = np.linspace(-10, 10, 400)
-        X, Y = np.meshgrid(x, y)
+        constraints = self.parse_constraints()
+        colors = itertools.cycle(['r', 'b', 'g', 'y', 'm', 'c'])
+        constraint_lines = []
+        constraint_labels = []
+        for i, constraint in enumerate(constraints):
+            color = next(colors)
+            if 'ineq' in constraint['type']:
+                c = self.ax.contour(X, Y, constraint['fun']([X, Y]), levels=[0], colors=color)
+                constraint_lines.append(c)
+                constraint_labels.append(f"Constraint {i+1} (ineq)")
+            elif 'eq' in constraint['type']:
+                c = self.ax.contour(X, Y, constraint['fun']([X, Y]), levels=[0], colors=color, linestyles='dashed')
+                constraint_lines.append(c)
+                constraint_labels.append(f"Constraint {i+1} (eq)")
 
-        func_str = self.entry_func.get()
-        Z = eval(func_str.replace("x[0]", "X").replace("x[1]", "Y"), {}, {"X": X, "Y": Y})
-
-        cs = self.ax.contour(X, Y, Z, levels=25, cmap=cm.viridis)
-        self.ax.clabel(cs, inline=1, fontsize=10)
-        cs.collections[0].set_label("Target Function")
-
-        for entry in self.constraint_entries:
-            constraint = entry.get()
-            if "<=" in constraint:
-                expr, bound = constraint.split("<=")
-                expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
-                Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
-                self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors='r', label=f"{constraint}")
-            elif ">=" in constraint:
-                expr, bound = constraint.split(">=")
-                expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
-                Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
-                self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors='r', label=f"{constraint}")
-            elif "==" in constraint:
-                expr, bound = constraint.split("==")
-                expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
-                Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
-                self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors='r', label=f"{constraint}")
-
-        self.ax.set_xlabel("$x_1$")
-        self.ax.set_ylabel("$x_2$")
-        self.ax.set_aspect('equal', 'box')
-        self.ax.set_title("Function Graph")
-        self.ax.grid(True)
-        self.ax.legend()
-
-        self.canvas.draw()
+        legend_elements = contour_set.legend_elements()[0][:3] + [line.collections[0] for line in constraint_lines]
+        legend_labels = ["Function Level"] * 3 + constraint_labels
+        self.ax.legend(legend_elements, legend_labels, loc='upper right')
 
     def update_graph(self, shade_feasible_var, show_minimum_var, show_maximum_var, show_convergence_var):
         self.plot_function_and_constraints()
-
-        if shade_feasible_var.get():
-            self.shade_feasible_area()
-
-        if show_minimum_var.get() and hasattr(self, 'result_min') and self.result_min.success:
-            self.ax.plot(self.result_min.x[0], self.result_min.x[1], 'ro', label="Minimum Point")
-
-        if show_maximum_var.get() and hasattr(self, 'result_max') and self.result_max.success:
-            self.ax.plot(self.result_max.x[0], self.result_max.x[1], 'go', label="Maximum Point")
-
+        
+        if show_minimum_var.get() and hasattr(self, 'result_min'):
+            self.ax.plot(*self.result_min.x, 'go', label='Minimum')
+        
+        if show_maximum_var.get() and hasattr(self, 'result_max'):
+            self.ax.plot(*self.result_max.x, 'ro', label='Maximum')
+        
         if show_convergence_var.get() and hasattr(self, 'intermediate_steps_min'):
-            intermediate_steps = np.array(self.intermediate_steps_min)
-            self.ax.plot(intermediate_steps[:, 0], intermediate_steps[:, 1], 'r--', label="Minimization Path")
-
+            min_path = np.array(self.intermediate_steps_min)
+            self.ax.plot(min_path[:, 0], min_path[:, 1], 'g--', label='Min Convergence Path')
+        
         if show_convergence_var.get() and hasattr(self, 'intermediate_steps_max'):
-            intermediate_steps = np.array(self.intermediate_steps_max)
-            self.ax.plot(intermediate_steps[:, 0], intermediate_steps[:, 1], 'g--', label="Maximization Path")
-
+            max_path = np.array(self.intermediate_steps_max)
+            self.ax.plot(max_path[:, 0], max_path[:, 1], 'r--', label='Max Convergence Path')
+        
+        if shade_feasible_var.get():
+            self.shade_feasible_region()
+        
         self.ax.legend()
         self.canvas.draw()
 
-    def shade_feasible_area(self):
-        x = np.linspace(-10, 10, 400)
-        y = np.linspace(-10, 10, 400)
-        X, Y = np.meshgrid(x, y)
-        feasible = np.ones_like(X, dtype=bool)
+    def shade_feasible_region(self):
+        x_vals = np.linspace(-5, 5, 400)
+        y_vals = np.linspace(-5, 5, 400)
+        X, Y = np.meshgrid(x_vals, y_vals)
 
-        for entry in self.constraint_entries:
-            constraint = entry.get()
-            if "<=" in constraint:
-                expr, bound = constraint.split("<=")
-                expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
-                feasible = feasible & (eval(expr, {}, {"X": X, "Y": Y}) <= float(bound))
-            elif ">=" in constraint:
-                expr, bound = constraint.split(">=")
-                expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
-                feasible = feasible & (eval(expr, {}, {"X": X, "Y": Y}) >= float(bound))
-            elif "==" in constraint:
-                expr, bound = constraint.split("==")
-                expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
-                feasible = feasible & (eval(expr, {}, {"X": X, "Y": Y}) == float(bound))
-
-        self.ax.contourf(X, Y, feasible, levels=[0.5, 1], colors='orange', alpha=0.3)
+        constraints = self.parse_constraints()
+        mask = np.ones_like(X, dtype=bool)
+        for constraint in constraints:
+            if constraint['type'] == 'ineq':
+                mask &= (constraint['fun']([X, Y]) >= 0)
+            elif constraint['type'] == 'eq':
+                mask &= (np.isclose(constraint['fun']([X, Y]), 0))
+        
+        self.ax.contourf(X, Y, mask, levels=[-0.5, 0.5], colors=['none', 'gray'], alpha=0.3)
 
     def open_3d_window(self):
-        fig = plt.figure(figsize=(10, 8), dpi=100)
-        ax = fig.add_subplot(111, projection='3d')
+        graph_window = tk.Toplevel(self)
+        graph_window.title("3D Graph")
+        graph_window.geometry("800x600")
 
-        x = np.linspace(-10, 10, 400)
-        y = np.linspace(-10, 10, 400)
-        X, Y = np.meshgrid(x, y)
+        self.figure_3d = plt.Figure(figsize=(10, 8), dpi=100)
+        self.ax_3d = self.figure_3d.add_subplot(111, projection='3d')
 
-        func_str = self.entry_func.get()
-        Z = eval(func_str.replace("x[0]", "X").replace("x[1]", "Y"), {}, {"X": X, "Y": Y})
+        toolbar = NavigationToolbar2Tk(FigureCanvasTkAgg(self.figure_3d, graph_window), graph_window)
+        toolbar.update()
+        toolbar.pack(side=tk.TOP, fill=tk.X)
 
-        surf = ax.plot_surface(X, Y, Z, cmap=cm.viridis, edgecolor='none', alpha=0.7)
-        fig.colorbar(surf, ax=ax, shrink=0.5, aspect=5, label="Target Function")
+        self.canvas_3d = FigureCanvasTkAgg(self.figure_3d, graph_window)
+        self.canvas_3d.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-        for entry in self.constraint_entries:
-            constraint = entry.get()
-            if "<=" in constraint:
-                expr, bound = constraint.split("<=")
-                expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
-                Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
-                ax.contour3D(X, Y, Z_constraint, levels=[float(bound)], colors='r', offset=Z.min())
-            elif ">=" in constraint:
-                expr, bound = constraint.split(">=")
-                expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
-                Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
-                ax.contour3D(X, Y, Z_constraint, levels=[float(bound)], colors='r', offset=Z.min())
-            elif "==" in constraint:
-                expr, bound = constraint.split("==")
-                expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
-                Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
-                ax.contour3D(X, Y, Z_constraint, levels=[float(bound)], colors='r', offset=Z.min())
+        self.plot_3d_function_and_constraints()
 
-        if self.result_min.success:
-            ax.scatter(self.result_min.x[0], self.result_min.x[1], self.func(self.result_min.x), color='r', s=50, label="Minimum")
+    def plot_3d_function_and_constraints(self):
+        self.ax_3d.clear()
+        
+        x_vals = np.linspace(-5, 5, 100)
+        y_vals = np.linspace(-5, 5, 100)
+        X, Y = np.meshgrid(x_vals, y_vals)
+        Z = np.array([[self.func([x, y]) for x in x_vals] for y in y_vals])
 
-        if self.result_max.success:
-            ax.scatter(self.result_max.x[0], self.result_max.x[1], -self.result_max.fun, color='g', s=50, label="Maximum")
+        self.ax_3d.plot_surface(X, Y, Z, cmap=cm.viridis, alpha=0.6)
 
-        ax.set_xlabel("$x_1$")
-        ax.set_ylabel("$x_2$")
-        ax.set_zlabel("$f(x)$")
-        ax.set_title("3D Model")
-        ax.legend()
+        constraints = self.parse_constraints()
+        colors = itertools.cycle(['r', 'b', 'g', 'y', 'm', 'c'])
+        constraint_lines = []
+        for i, constraint in enumerate(constraints):
+            color = next(colors)
+            if constraint['type'] == 'ineq':
+                Z_constraint = np.array([[constraint['fun']([x, y]) for x in x_vals] for y in y_vals])
+                c = self.ax_3d.contour(X, Y, Z_constraint, levels=[0], colors=color)
+                constraint_lines.append(c)
+            elif constraint['type'] == 'eq':
+                Z_constraint = np.array([[constraint['fun']([x, y]) for x in x_vals] for y in y_vals])
+                c = self.ax_3d.contour(X, Y, Z_constraint, levels=[0], colors=color, linestyles='dashed')
+                constraint_lines.append(c)
 
-        plt.show()
+        if hasattr(self, 'result_min'):
+            self.ax_3d.scatter(*self.result_min.x, self.func(self.result_min.x), color='r', label='Minimum', marker='o')
+        
+        if hasattr(self, 'result_max'):
+            self.ax_3d.scatter(*self.result_max.x, self.func(self.result_max.x), color='g', label='Maximum', marker='o')
+
+        self.ax_3d.set_xlim(-5, 5)
+        self.ax_3d.set_ylim(-5, 5)
+        self.ax_3d.set_zlim(np.min(Z), np.max(Z))
+        
+        self.ax_3d.set_xlabel('X1')
+        self.ax_3d.set_ylabel('X2')
+        self.ax_3d.set_zlabel('f(X1, X2)')
+
+        legend_elements = [line.collections[0] for line in constraint_lines] + [self.ax_3d.scatter([], [], color='r', label='Minimum'), self.ax_3d.scatter([], [], color='g', label='Maximum')]
+        legend_labels = [f"Constraint {i+1}" for i in range(len(constraint_lines))] + ['Minimum', 'Maximum']
+        self.ax_3d.legend(legend_elements, legend_labels, loc='upper right')
+
+        self.canvas_3d.draw()
 
 if __name__ == "__main__":
     app = OptimizationApp()
