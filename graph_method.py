@@ -11,11 +11,14 @@ class OptimizationApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Optimization Tool")
-        self.geometry("600x800")
+        self.geometry("600x500")
 
         self.constraints = []
         self.result_min = None
         self.result_max = None
+
+        self.legend_list = []
+
         self.create_widgets()
 
     def create_widgets(self):
@@ -192,10 +195,16 @@ class OptimizationApp(tk.Tk):
 
         graph_window = tk.Toplevel(self)
         graph_window.title("Function Graph")
-        graph_window.geometry("800x600")
+        graph_window.geometry("1000x900")
 
-        self.figure = plt.Figure(figsize=(10, 8), dpi=100)
+        self.figure = plt.Figure(figsize=(8, 8), dpi=100)
         self.ax = self.figure.add_subplot(111)
+
+        self.canvas = FigureCanvasTkAgg(self.figure, graph_window)
+        self.canvas.get_tk_widget().pack(side="bottom", fill=tk.NONE, expand=False)
+        toolbar = NavigationToolbar2Tk(self.canvas, graph_window)
+        toolbar.update()
+        toolbar.pack(side=tk.TOP, fill="both")
 
         options_frame = tk.Frame(graph_window)
         options_frame.pack(side=tk.TOP, fill=tk.X)
@@ -221,13 +230,6 @@ class OptimizationApp(tk.Tk):
         show_convergence_max_cb = tk.Checkbutton(options_frame, text="Show Convergence (Max)", variable=self.show_convergence_max_var, command=lambda: self.update_graph())
         show_convergence_max_cb.pack(side=tk.LEFT)
 
-        self.canvas = FigureCanvasTkAgg(self.figure, graph_window)
-        self.canvas.get_tk_widget().pack(side=tk.BOTTOM,fill=tk.BOTH, expand=True)
-
-        toolbar = NavigationToolbar2Tk(self.canvas, graph_window)
-        toolbar.update()
-        toolbar.pack(side=tk.LEFT, fill=tk.X)
-        
         self.update_graph()
 
     def plot_function_and_constraints(self):
@@ -247,44 +249,44 @@ class OptimizationApp(tk.Tk):
             levels.append(self.func([self.result_max.x[0], self.result_max.x[1]]))
 
         if levels:
-            levels.sort()
+            levels = np.unique(levels)
             contour = self.ax.contour(X, Y, Z, levels=levels, colors='darkred')
             self.ax.clabel(contour, inline=True, fontsize=8)
 
-        self.legend_list = []
         self.colors = itertools.cycle(['b', 'y', 'm', 'c', 'k', 'gold', 'blueviolet'])
         
+        self.legend_list = []
+
         for entry in self.constraint_entries:
             constraint = entry.get()
             if "<=" in constraint:
                 expr, bound = constraint.split("<=")
                 expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
                 Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
-                self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors=next(self.colors))
-                self.legend_list.append(f'{expr}')
+                contour = self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors=next(self.colors))
+                self.ax.clabel(contour, inline=True, fontsize=8, fmt={float(bound): f'{constraint}'})
             elif ">=" in constraint:
                 expr, bound = constraint.split(">=")
                 expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
                 Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
-                self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors=next(self.colors))
-                self.legend_list.append(f'{expr}')
+                contour = self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors=next(self.colors))
+                self.ax.clabel(contour, inline=True, fontsize=8, fmt={float(bound): f'{constraint}'})
             elif "==" in constraint:
                 expr, bound = constraint.split("==")
                 expr = expr.replace("x[0]", "X").replace("x[1]", "Y")
                 Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
-                self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors=next(self.colors))
-                self.legend_list.append(f'{expr}')
+                contour = self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors=next(self.colors))
+                self.ax.clabel(contour, inline=True, fontsize=8, fmt={float(bound): f'{constraint}'})
 
-    
         self.ax.set_xlim(-10, 10)
         self.ax.set_ylim(-10, 10)
         self.ax.set_xlabel("X1")
         self.ax.set_ylabel("X2")
         self.ax.grid(True)
-        
-
+               
     def update_graph(self):
         self.plot_function_and_constraints()
+
         x = np.linspace(-10, 10, 400)
         y = np.linspace(-10, 10, 400)
         X, Y = np.meshgrid(x, y)
@@ -294,26 +296,29 @@ class OptimizationApp(tk.Tk):
         color_max = 'g'
 
         if self.show_minimum_var.get() and self.result_min is not None:
-                self.ax.plot(self.result_min.x[0], self.result_min.x[1], f'{color_min}o', markersize=10, label="Minimum")
+            if not self.result_min:
+                self.result_min = self.optimize("min")
+            if self.result_min.success:
+                self.ax.plot(self.result_min.x[0], self.result_min.x[1], f'{color_min}o', markersize=7, label='Minimum')
                 
         if self.show_maximum_var.get() and self.result_max is not None:
             if not self.result_max:
                 self.result_max = self.optimize("max")
             if self.result_max.success:
-                self.ax.plot(self.result_max.x[0], self.result_max.x[1], f'{color_max}o', markersize=10, label="Maximum")
+                self.ax.plot(self.result_max.x[0], self.result_max.x[1], f'{color_max}o', markersize=7, label='Maximum')
 
         if self.show_convergence_min_var.get() and hasattr(self, 'intermediate_steps_min'):
             self.intermediate_steps_min = np.array(self.intermediate_steps_min)
-            self.ax.plot(self.intermediate_steps_min[:, 0], self.intermediate_steps_min[:, 1], f'{color_min}o-', label="Convergence Path (Min)")
+            self.ax.plot(self.intermediate_steps_min[:, 0], self.intermediate_steps_min[:, 1], f'{color_min}o-', label='Convergence Path (Min)')
 
         if self.show_convergence_max_var.get() and hasattr(self, 'intermediate_steps_max'):
             self.intermediate_steps_max = np.array(self.intermediate_steps_max)
-            self.ax.plot(self.intermediate_steps_max[:, 0], self.intermediate_steps_max[:, 1], f'{color_max}o-', label="Convergence Path (Max)")
+            self.ax.plot(self.intermediate_steps_max[:, 0], self.intermediate_steps_max[:, 1], f'{color_max}o-', label='Convergence Path (Max)')
         
         if self.shade_feasible_var.get():
             self.shade_feasible_region()
         
-        self.ax.legend(self.legend_list)
+        self.ax.legend()
         
         self.canvas.draw()
 
