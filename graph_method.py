@@ -267,8 +267,8 @@ class OptimizationApp(tk.Tk):
     def plot_function_and_constraints(self):
         self.ax.clear()
         self.ax.set_aspect('equal')
-        x_vals = np.linspace(-20, 20, 400)
-        y_vals = np.linspace(-20, 20, 400)
+        x_vals = np.linspace(-15, 15, 600)
+        y_vals = np.linspace(-15, 15, 600)
         X, Y = np.meshgrid(x_vals, y_vals)
         
         func_str = self.entry_func.get()
@@ -310,8 +310,8 @@ class OptimizationApp(tk.Tk):
                 contour = self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors=next(self.colors))
                 self.ax.clabel(contour, inline=True, fontsize=8, fmt={float(bound): f'{constraint}'})
 
-        self.ax.set_xlim(-20, 20)
-        self.ax.set_ylim(-20, 20)
+        self.ax.set_xlim(-15, 15)
+        self.ax.set_ylim(-15, 15)
         self.ax.set_xlabel("X1")
         self.ax.set_ylabel("X2")
         self.ax.grid(True)
@@ -319,8 +319,8 @@ class OptimizationApp(tk.Tk):
     def update_graph(self):
         self.plot_function_and_constraints()
 
-        x = np.linspace(-20, 20, 400)
-        y = np.linspace(-20, 20, 400)
+        x = np.linspace(-15, 15, 600)
+        y = np.linspace(-15, 15, 600)
         X, Y = np.meshgrid(x, y)
         #Z = eval(self.entry_func.get(), {}, {"x": [X, Y]})
 
@@ -355,8 +355,8 @@ class OptimizationApp(tk.Tk):
         self.canvas.draw()
 
     def shade_feasible_region(self):
-        x = np.linspace(-20, 20, 400)
-        y = np.linspace(-20, 20, 400)
+        x = np.linspace(-15, 15, 600)
+        y = np.linspace(-15, 15, 600)
         X, Y = np.meshgrid(x, y)
         feasible = np.ones_like(X, dtype=bool)
 
@@ -381,8 +381,8 @@ class OptimizationApp(tk.Tk):
         fig = plt.figure(figsize=(10, 8), dpi=100)
         ax = fig.add_subplot(111, projection='3d')
 
-        x = np.linspace(-20, 20, 400)
-        y = np.linspace(-20, 20, 400)
+        x = np.linspace(-15, 15, 600)
+        y = np.linspace(-15, 15, 600)
         X, Y = np.meshgrid(x, y)
 
         func_str = self.entry_func.get()
