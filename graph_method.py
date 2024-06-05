@@ -66,7 +66,7 @@ class OptimizationApp(tk.Tk):
         self.button_optimize.pack()
 
         # Кнопка для отображения графика
-        self.button_show_graph = tk.Button(self, text="Показать график", command=self.open_graph_window)
+        self.button_show_graph = tk.Button(self, text="Показать график", command=self.open_graph_window, state=tk.DISABLED)
         self.button_show_graph.pack()
 
         # Кнопка для отображения 3D-модели
@@ -150,6 +150,7 @@ class OptimizationApp(tk.Tk):
 
     def calculate(self):
         self.button_show_3d.config(state=tk.NORMAL)
+        self.button_show_graph.config(state=tk.NORMAL)
 
         self.optimize("min")
         self.optimize("max")
@@ -162,14 +163,14 @@ class OptimizationApp(tk.Tk):
         self.result_text_max = ""
 
         if self.result_min.success:
-            self.result_text_min += f"Точка минимума найдена в: {self.result_min.x}\n"
+            self.result_text_min += f"Точка минимума найдена в точке (x1,x2): {self.result_min.x}\n"
             self.result_text_min += f"Значение целевой функции: {self.func(self.result_min.x)}\n"
             self.result_text_min += f"Кол-во итераций: {self.iteration_min}\n"
         else:
             self.result_text_min += "Решение не найдено.\n"
 
         if self.result_max.success:
-            self.result_text_max += f"Точка максимума найдена в: {self.result_max.x}\n"
+            self.result_text_max += f"Точка максимума найдена в точке (x1,x2): {self.result_max.x}\n"
             self.result_text_max += f"Значение целевой функции: {-self.result_max.fun}\n"
             self.result_text_max += f"Кол-во итераций: {self.iteration_max}\n"
         else:
@@ -194,13 +195,13 @@ class OptimizationApp(tk.Tk):
 
         if hasattr(self, 'intermediate_steps_min'):
             for i, step in enumerate(self.intermediate_steps_min):
-                self.min_path_text += f"Iteration {i}: x = {step}; f(x) = {self.func(step)}\n"
+                self.min_path_text += f"Iteration {i}: x1,x2 = {step}; f(x1,x2) = {self.func(step)}\n"
         else:
             self.min_path_text = "Не удалось найти экстремум\n"
 
         if hasattr(self, 'intermediate_steps_max'):
             for i, step in enumerate(self.intermediate_steps_max):
-                self.max_path_text += f"Iteration {i}: x = {step}; f(x) = {self.func(step)}\n"
+                self.max_path_text += f"Iteration {i}: x1,x2 = {step}; f(x1,x2) = {self.func(step)}\n"
         else:
             self.max_path_text = "Не удалось найти экстремум\n"
 
@@ -265,9 +266,9 @@ class OptimizationApp(tk.Tk):
 
     def plot_function_and_constraints(self):
         self.ax.clear()
-        
-        x_vals = np.linspace(-10, 10, 400)
-        y_vals = np.linspace(-10, 10, 400)
+        self.ax.set_aspect('equal')
+        x_vals = np.linspace(-20, 20, 400)
+        y_vals = np.linspace(-20, 20, 400)
         X, Y = np.meshgrid(x_vals, y_vals)
         
         func_str = self.entry_func.get()
@@ -309,8 +310,8 @@ class OptimizationApp(tk.Tk):
                 contour = self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors=next(self.colors))
                 self.ax.clabel(contour, inline=True, fontsize=8, fmt={float(bound): f'{constraint}'})
 
-        self.ax.set_xlim(-10, 10)
-        self.ax.set_ylim(-10, 10)
+        self.ax.set_xlim(-20, 20)
+        self.ax.set_ylim(-20, 20)
         self.ax.set_xlabel("X1")
         self.ax.set_ylabel("X2")
         self.ax.grid(True)
@@ -318,8 +319,8 @@ class OptimizationApp(tk.Tk):
     def update_graph(self):
         self.plot_function_and_constraints()
 
-        x = np.linspace(-10, 10, 400)
-        y = np.linspace(-10, 10, 400)
+        x = np.linspace(-20, 20, 400)
+        y = np.linspace(-20, 20, 400)
         X, Y = np.meshgrid(x, y)
         #Z = eval(self.entry_func.get(), {}, {"x": [X, Y]})
 
@@ -354,8 +355,8 @@ class OptimizationApp(tk.Tk):
         self.canvas.draw()
 
     def shade_feasible_region(self):
-        x = np.linspace(-10, 10, 400)
-        y = np.linspace(-10, 10, 400)
+        x = np.linspace(-20, 20, 400)
+        y = np.linspace(-20, 20, 400)
         X, Y = np.meshgrid(x, y)
         feasible = np.ones_like(X, dtype=bool)
 
@@ -380,8 +381,8 @@ class OptimizationApp(tk.Tk):
         fig = plt.figure(figsize=(10, 8), dpi=100)
         ax = fig.add_subplot(111, projection='3d')
 
-        x = np.linspace(-10, 10, 400)
-        y = np.linspace(-10, 10, 400)
+        x = np.linspace(-20, 20, 400)
+        y = np.linspace(-20, 20, 400)
         X, Y = np.meshgrid(x, y)
 
         func_str = self.entry_func.get()
