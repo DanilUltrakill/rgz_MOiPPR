@@ -164,7 +164,7 @@ class OptimizationApp(tk.Tk):
 
         results_window = tk.Toplevel(self)
         results_window.title("Результаты решения")
-        results_window.geometry("800x600")
+        results_window.geometry("900x600")
         results_window["bg"] = self["bg"]
 
         self.result_text_min = ""
@@ -194,7 +194,7 @@ class OptimizationApp(tk.Tk):
         self.show_path_button.grid(row=1, column=0, columnspan=2, pady=10)
 
         self.hide_path_button = tk.Button(results_window, text="Скрыть", command=lambda: self.hide_solution_path(), bg=self.button_bg, activebackground=self.activ_bg)
-        self.hide_path_button.grid(row=1, column=1, columnspan=2, pady=10)
+        self.hide_path_button.grid(row=1, column=0, columnspan=2, pady=10)
         self.hide_path_button.grid_remove()
 
     def show_solution_path(self, parent_window):
