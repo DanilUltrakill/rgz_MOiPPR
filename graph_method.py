@@ -189,18 +189,18 @@ class OptimizationApp(tk.Tk):
         if self.result_min.success:
             self.result_text_min += f"Точка минимума найдена в точке (x1,x2): {self.result_min.x}\n"
             self.result_text_min += f"Значение целевой функции: {self.func(self.result_min.x)}\n"
-            self.result_text_min += f"Кол-во итераций: {self.iteration_min}\n"
+            self.result_text_min += f"Кол-во итераций: {self.iteration_min+1}\n"
         else:
             self.result_text_min += "Решение не найдено.\n"
-            self.result_text_min += f"Кол-во итераций: {self.iteration_min}\n"
+            self.result_text_min += f"Кол-во итераций: {self.iteration_min+1}\n"
 
         if self.result_max.success:
             self.result_text_max += f"Точка максимума найдена в точке (x1,x2): {self.result_max.x}\n"
             self.result_text_max += f"Значение целевой функции: {-self.result_max.fun}\n"
-            self.result_text_max += f"Кол-во итераций: {self.iteration_max}\n"
+            self.result_text_max += f"Кол-во итераций: {self.iteration_max+1}\n"
         else:
             self.result_text_max += "Решение не найдено.\n"
-            self.result_text_max += f"Кол-во итераций: {self.iteration_max}\n"
+            self.result_text_max += f"Кол-во итераций: {self.iteration_max+1}\n"
 
         self.results_label_min = tk.Label(results_window, text=self.result_text_min, bg=self.label_bg)
         self.results_label_min.grid(row=0, column=0, padx=10, pady=10)
