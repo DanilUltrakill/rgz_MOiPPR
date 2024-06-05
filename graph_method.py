@@ -63,7 +63,7 @@ class OptimizationApp(tk.Tk):
         self.button_remove_constraint.pack()
 
         # Кнопка для начала оптимизации
-        self.button_optimize = tk.Button(self, text="Calculate", command=self.calculate)
+        self.button_optimize = tk.Button(self, text="Calculate", command=self.open_results_window)
         self.button_optimize.pack()
 
         # Кнопка для отображения графика
@@ -104,89 +104,78 @@ class OptimizationApp(tk.Tk):
                 pass
         return constraints
 
-    def optimize(self, opt_type):
+    def optimize(self, optimization_type):
         initial_guess = np.array([float(x) for x in self.entry_initial.get().split(",")])
-
         constraints = self.parse_constraints()
+        self.intermediate_steps = [initial_guess]
+        self.iteration = 0
 
-        if opt_type == "min":
-            self.intermediate_steps_min = [initial_guess]
-            self.iteration_min = 0
+        def callback(xk):
+            print(f"Iteration {self.iteration}: x = {xk}; f(x) = {self.func(xk)}")
+            self.intermediate_steps.append(xk.copy())
+            self.iteration += 1
 
-            def callback_min(xk):
-                self.intermediate_steps_min.append(xk.copy())
-                self.iteration_min += 1
-
-            self.result_min = minimize(self.func, initial_guess, method='SLSQP', constraints=constraints, tol=0.001, callback=callback_min)
-
+        if optimization_type == "min":
+            result = minimize(self.func, initial_guess, method='SLSQP', constraints=constraints, tol=0.001, callback=callback)
         else:
             def neg_func(x):
                 return -self.func(x)
+            result = minimize(neg_func, initial_guess, method='SLSQP', constraints=constraints, tol=0.001, callback=callback)
 
-            self.intermediate_steps_max = [initial_guess]
-            self.iteration_max = 0
+        return result
 
-            def callback_max(xk):
-                self.intermediate_steps_max.append(xk.copy())
-                self.iteration_max += 1
-
-            self.result_max = minimize(neg_func, initial_guess, method='SLSQP', constraints=constraints, tol=0.001, callback=callback_max)
-
-    def calculate(self):
-        self.optimize("min")
-        self.optimize("max")
+    def open_results_window(self):
+        self.result_min = self.optimize("min")
+        self.result_max = self.optimize("max")
 
         results_window = tk.Toplevel(self)
         results_window.title("Optimization Results")
         results_window.geometry("800x600")
 
-        result_text_min = ""
-        result_text_max = ""
-
+        result_text = ""
         if self.result_min.success:
             result_text_min += f"Minimum found at: {self.result_min.x}\n"
             result_text_min += f"Function value: {self.func(self.result_min.x)}\n"
             result_text_min += f"Iterations: {self.iteration_min}\n"
         else:
-            result_text_min += "Minimum optimization failed.\n"
+            result_text += "Minimum optimization failed.\n\n"
 
         if self.result_max.success:
             result_text_max += f"Maximum found at: {self.result_max.x}\n"
             result_text_max += f"Function value: {-self.result_max.fun}\n"
             result_text_max += f"Iterations: {self.iteration_max}\n"
         else:
-            result_text_max += "Maximum optimization failed.\n"
+            result_text += "Maximum optimization failed.\n"
 
-        results_label_min = tk.Label(results_window, text=result_text_min)
-        results_label_min.grid(row=0, column=0, padx=10, pady=10)
+        results_label = tk.Label(results_window, text=result_text)
+        results_label.pack()
 
-        results_label_max = tk.Label(results_window, text=result_text_max)
-        results_label_max.grid(row=0, column=1, padx=10, pady=10)
+        show_path_button = tk.Button(results_window, text="Show Solution Path", command=self.show_solution_path)
+        show_path_button.pack()
 
-        show_path_button = tk.Button(results_window, text="Show Solution Path", command=lambda: self.show_solution_path(results_window))
-        show_path_button.grid(row=1, column=0, columnspan=2, pady=10)
+    def show_solution_path(self):
+        path_window = tk.Toplevel(self)
+        path_window.title("Solution Path")
+        path_window.geometry("800x600")
 
-    def show_solution_path(self, parent_window):
-        min_path_text = ""
-        max_path_text = ""
+        fig, ax = plt.subplots()
 
-        if hasattr(self, 'intermediate_steps_min'):
-            for i, step in enumerate(self.intermediate_steps_min):
-                min_path_text += f"Iteration {i}: x = {step}; f(x) = {self.func(step)}\n"
-        else:
-            min_path_text = "Не удалось найти экстремум\n"
+        x_path = [step[0] for step in self.intermediate_steps]
+        y_path = [step[1] for step in self.intermediate_steps]
 
-        if hasattr(self, 'intermediate_steps_max'):
-            for i, step in enumerate(self.intermediate_steps_max):
-                max_path_text += f"Iteration {i}: x = {step}; f(x) = {self.func(step)}\n"
-        else:
-            max_path_text = "Не удалось найти экстремум\n"
+        ax.plot(x_path, y_path, 'bo-', label="Solution Path")
+        ax.set_xlabel("$x_1$")
+        ax.set_ylabel("$x_2$")
+        ax.set_title("Solution Path")
+        ax.grid(True)
+        ax.legend()
 
-        min_path_label = tk.Label(parent_window, text=min_path_text, justify=tk.LEFT)
-        min_path_label.grid(row=2, column=0, padx=10, pady=10)
-
-        max_path_label = tk.Label(parent_window, text=max_path_text, justify=tk.LEFT)
-        max_path_label.grid(row=2, column=1, padx=10, pady=10)
+        canvas = FigureCanvasTkAgg(fig, master=path_window)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        toolbar = NavigationToolbar2Tk(canvas, path_window)
+        toolbar.update()
+        canvas._tkcanvas.pack(fill=tk.BOTH, expand=True)
 
     def open_graph_window(self):
 
