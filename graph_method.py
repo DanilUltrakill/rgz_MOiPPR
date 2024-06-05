@@ -14,30 +14,37 @@ class OptimizationApp(tk.Tk):
         self.title("Решение задач НЛП")
         self.geometry("600x500")
 
+        self["bg"] = "#4682B4"
+        self.label_bg = "#B0C4DE"
+        self.button_bg = "#B0E0E6"
+        self.activ_bg = "#87CEFA"
+
+        self.entry_pady = (0,10)
+        self.button_pady = (10,0)
+
         self.constraints = []
         self.result_min = None
         self.result_max = None
-
         self.create_widgets()
 
     def create_widgets(self):
         # Entry для целевой функции
-        self.label_func = tk.Label(self, text="Целевая функция (например, (x[1]-3)**2 + x[2]**2):")
+        self.label_func = tk.Label(self, text="Целевая функция (например, (x[1]-3)**2 + x[2]**2):", bg=self.label_bg)
         self.label_func.pack()
         self.entry_func = tk.Entry(self, width=50)
         self.entry_func.insert(0, "(x[1]-3)**2 + x[2]**2")  # Значение по умолчанию
-        self.entry_func.pack()
+        self.entry_func.pack(pady = self.entry_pady)
 
         # Entry для начального предположения
-        self.label_initial = tk.Label(self, text="Начальная точка (например, 0,0):")
+        self.label_initial = tk.Label(self, text="Начальная точка (например, 0,0):", bg=self.label_bg)
         self.label_initial.pack()
         self.entry_initial = tk.Entry(self, width=50)
         self.entry_initial.insert(0, "0,0")  # Значение по умолчанию
-        self.entry_initial.pack()
+        self.entry_initial.pack(pady = self.entry_pady)
 
         # Entry для первого ограничения
         self.constraint_entries = []
-        self.label_constraints = tk.Label(self, text="Ограничение (например, x[1]**2 + x[2] <= 2):")
+        self.label_constraints = tk.Label(self, text="Ограничение (например, x[1] + x[2] <= 2):", bg=self.label_bg)
         self.label_constraints.pack()
 
         # Значения ограничений по умолчанию
@@ -54,24 +61,24 @@ class OptimizationApp(tk.Tk):
             self.constraint_entries.append(entry_constraint)
 
         # Кнопка для добавления дополнительных ограничений
-        self.button_add_constraint = tk.Button(self, text="Добавить ограничение", command=self.add_constraint)
-        self.button_add_constraint.pack()
+        self.button_add_constraint = tk.Button(self, text="Добавить ограничение", command=self.add_constraint, bg=self.button_bg, activebackground=self.activ_bg)
+        self.button_add_constraint.pack(pady = self.button_pady)
 
         # Кнопка для удаления последнего ограничения
-        self.button_remove_constraint = tk.Button(self, text="Удалить ограничение", command=self.remove_constraint)
-        self.button_remove_constraint.pack()
+        self.button_remove_constraint = tk.Button(self, text="Удалить ограничение", command=self.remove_constraint, bg=self.button_bg, activebackground=self.activ_bg)
+        self.button_remove_constraint.pack(pady = self.button_pady)
 
         # Кнопка для начала оптимизации
-        self.button_optimize = tk.Button(self, text="Решить", command=self.calculate)
-        self.button_optimize.pack()
+        self.button_optimize = tk.Button(self, text="Решить", command=self.calculate, bg=self.button_bg, activebackground=self.activ_bg)
+        self.button_optimize.pack(pady = self.button_pady)
 
         # Кнопка для отображения графика
-        self.button_show_graph = tk.Button(self, text="Показать график", command=self.open_graph_window, state=tk.DISABLED)
-        self.button_show_graph.pack()
+        self.button_show_graph = tk.Button(self, text="Показать график", command=self.open_graph_window, bg=self.button_bg, state=tk.DISABLED, activebackground=self.activ_bg)
+        self.button_show_graph.pack(pady = self.button_pady)
 
         # Кнопка для отображения 3D-модели
-        self.button_show_3d = tk.Button(self, text="Показать 3D модель", command=self.open_3d_window, state=tk.DISABLED)
-        self.button_show_3d.pack()
+        self.button_show_3d = tk.Button(self, text="Показать 3D модель", command=self.open_3d_window, state=tk.DISABLED, bg=self.button_bg, activebackground=self.activ_bg)
+        self.button_show_3d.pack(pady = self.button_pady)
 
         self.update_constraint_buttons()
 
@@ -158,6 +165,7 @@ class OptimizationApp(tk.Tk):
         results_window = tk.Toplevel(self)
         results_window.title("Результаты решения")
         results_window.geometry("800x600")
+        results_window["bg"] = self["bg"]
 
         self.result_text_min = ""
         self.result_text_max = ""
@@ -176,16 +184,16 @@ class OptimizationApp(tk.Tk):
         else:
             self.result_text_max += "Решение не найдено.\n"
 
-        self.results_label_min = tk.Label(results_window, text=self.result_text_min)
+        self.results_label_min = tk.Label(results_window, text=self.result_text_min, bg=self.label_bg)
         self.results_label_min.grid(row=0, column=0, padx=10, pady=10)
 
-        self.results_label_max = tk.Label(results_window, text=self.result_text_max)
+        self.results_label_max = tk.Label(results_window, text=self.result_text_max, bg=self.label_bg)
         self.results_label_max.grid(row=0, column=1, padx=10, pady=10)
 
-        self.show_path_button = tk.Button(results_window, text="Показать каждую итерацию", command=lambda: self.show_solution_path(results_window))
+        self.show_path_button = tk.Button(results_window, text="Показать каждую итерацию", command=lambda: self.show_solution_path(results_window), bg=self.button_bg, activebackground=self.activ_bg)
         self.show_path_button.grid(row=1, column=0, columnspan=2, pady=10)
 
-        self.hide_path_button = tk.Button(results_window, text="Скрыть", command=lambda: self.hide_solution_path())
+        self.hide_path_button = tk.Button(results_window, text="Скрыть", command=lambda: self.hide_solution_path(), bg=self.button_bg, activebackground=self.activ_bg)
         self.hide_path_button.grid(row=1, column=1, columnspan=2, pady=10)
         self.hide_path_button.grid_remove()
 
@@ -195,18 +203,18 @@ class OptimizationApp(tk.Tk):
 
         if hasattr(self, 'intermediate_steps_min'):
             for i, step in enumerate(self.intermediate_steps_min):
-                self.min_path_text += f"Iteration {i}: x1,x2 = {step}; f(x1,x2) = {self.func(step)}\n"
+                self.min_path_text += f"Итерация {i}: x1,x2 = {step}; f(x1,x2) = {self.func(step)}\n"
         else:
             self.min_path_text = "Не удалось найти экстремум\n"
 
         if hasattr(self, 'intermediate_steps_max'):
             for i, step in enumerate(self.intermediate_steps_max):
-                self.max_path_text += f"Iteration {i}: x1,x2 = {step}; f(x1,x2) = {self.func(step)}\n"
+                self.max_path_text += f"Итерация {i}: x1,x2 = {step}; f(x1,x2) = {self.func(step)}\n"
         else:
             self.max_path_text = "Не удалось найти экстремум\n"
 
-        self.min_path_label = tk.Label(parent_window, text=self.min_path_text)
-        self.max_path_label = tk.Label(parent_window, text=self.max_path_text)
+        self.min_path_label = tk.Label(parent_window, text=self.min_path_text, bg = self.label_bg)
+        self.max_path_label = tk.Label(parent_window, text=self.max_path_text, bg = self.label_bg)
 
         self.min_path_label.grid(row=2, column=0, padx=10, pady=10)
         self.max_path_label.grid(row=2, column=1, padx=10, pady=10)
@@ -228,6 +236,7 @@ class OptimizationApp(tk.Tk):
         graph_window = tk.Toplevel(self)
         graph_window.title("Графическое решение")
         graph_window.geometry("1000x900")
+        graph_window["bg"] = self["bg"]
 
         self.figure = plt.Figure(figsize=(8, 8), dpi=100)
         self.ax = self.figure.add_subplot(111)
@@ -238,7 +247,7 @@ class OptimizationApp(tk.Tk):
         toolbar.update()
         toolbar.pack(side=tk.TOP, fill="both")
 
-        options_frame = tk.Frame(graph_window)
+        options_frame = tk.Frame(graph_window, bg=self["bg"])
         options_frame.pack(side=tk.TOP, fill=tk.X)
 
         self.shade_feasible_var = tk.BooleanVar()
@@ -247,19 +256,19 @@ class OptimizationApp(tk.Tk):
         self.show_convergence_min_var = tk.BooleanVar()
         self.show_convergence_max_var = tk.BooleanVar()
 
-        shade_feasible_cb = tk.Checkbutton(options_frame, text="Область допустимых решений", variable=self.shade_feasible_var, command=lambda: self.update_graph())
+        shade_feasible_cb = tk.Checkbutton(options_frame, text="Область допустимых решений", variable=self.shade_feasible_var, command=lambda: self.update_graph(), bg=self["bg"], activebackground=self.activ_bg)
         shade_feasible_cb.pack(side=tk.LEFT)
 
-        show_minimum_cb = tk.Checkbutton(options_frame, text="Точка минимума", variable=self.show_minimum_var, command=lambda: self.update_graph())
+        show_minimum_cb = tk.Checkbutton(options_frame, text="Точка минимума", variable=self.show_minimum_var, command=lambda: self.update_graph(), bg=self["bg"], activebackground=self.activ_bg)
         show_minimum_cb.pack(side=tk.LEFT)
 
-        show_maximum_cb = tk.Checkbutton(options_frame, text="Точка максимума", variable=self.show_maximum_var, command=lambda: self.update_graph())
+        show_maximum_cb = tk.Checkbutton(options_frame, text="Точка максимума", variable=self.show_maximum_var, command=lambda: self.update_graph(), bg=self["bg"], activebackground=self.activ_bg)
         show_maximum_cb.pack(side=tk.LEFT)
 
-        show_convergence_min_cb = tk.Checkbutton(options_frame, text="Траектория сходимости (мин)", variable=self.show_convergence_min_var, command=lambda: self.update_graph())
+        show_convergence_min_cb = tk.Checkbutton(options_frame, text="Траектория сходимости (мин)", variable=self.show_convergence_min_var, command=lambda: self.update_graph(), bg=self["bg"], activebackground=self.activ_bg)
         show_convergence_min_cb.pack(side=tk.LEFT)
 
-        show_convergence_max_cb = tk.Checkbutton(options_frame, text="Траектория сходимости (макс)", variable=self.show_convergence_max_var, command=lambda: self.update_graph())
+        show_convergence_max_cb = tk.Checkbutton(options_frame, text="Траектория сходимости (макс)", variable=self.show_convergence_max_var, command=lambda: self.update_graph(), bg=self["bg"], activebackground=self.activ_bg)
         show_convergence_max_cb.pack(side=tk.LEFT)
 
         self.update_graph()
