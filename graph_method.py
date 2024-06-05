@@ -42,6 +42,12 @@ class OptimizationApp(tk.Tk):
         self.entry_initial.insert(0, "0,0")  # Значение по умолчанию
         self.entry_initial.pack(pady = self.entry_pady)
 
+        self.label_maxiter = tk.Label(self, text="Максимальное кол-во итераций (например, 50):", bg=self.label_bg)
+        self.label_maxiter.pack()
+        self.entry_maxiter = tk.Entry(self, width=50)
+        self.entry_maxiter.insert(0, "100")  # Значение по умолчанию
+        self.entry_maxiter.pack(pady = self.entry_pady)
+
         # Entry для первого ограничения
         self.constraint_entries = []
         self.label_constraints = tk.Label(self, text="Ограничение (например, x[1] + x[2] <= 2):", bg=self.label_bg)
@@ -120,8 +126,14 @@ class OptimizationApp(tk.Tk):
             elif ">=" in constraint:
                 expr, bound = constraint.split(">=")
                 constraints.append({'type': 'ineq', 'fun': lambda x, expr=expr, bound=float(bound): eval(expr, {}, {"x": [0] + list(x)}) - float(bound)})
-            elif "==" in constraint:
-                expr, bound = constraint.split("==")
+            elif ">" in constraint:
+                expr, bound = constraint.split(">")
+                constraints.append({'type': 'ineq', 'fun': lambda x, expr=expr, bound=float(bound): eval(expr, {}, {"x": [0] + list(x)}) - float(bound)})
+            elif "<" in constraint:
+                expr, bound = constraint.split("<")
+                constraints.append({'type': 'ineq', 'fun': lambda x, expr=expr, bound=float(bound): eval(expr, {}, {"x": [0] + list(x)}) - float(bound)})
+            elif "=" in constraint:
+                expr, bound = constraint.split("=")
                 constraints.append({'type': 'eq', 'fun': lambda x, expr=expr, bound=float(bound): eval(expr, {}, {"x": [0] + list(x)}) - float(bound)})
             else:
                 pass
@@ -129,6 +141,10 @@ class OptimizationApp(tk.Tk):
 
     def optimize(self, opt_type):
         initial_guess = np.array([float(x) for x in self.entry_initial.get().split(",")])
+
+        max_iter = int(self.entry_maxiter.get())
+
+        options = {'maxiter': max_iter}
 
         constraints = self.parse_constraints()
 
@@ -140,7 +156,7 @@ class OptimizationApp(tk.Tk):
                 self.intermediate_steps_min.append(xk.copy())
                 self.iteration_min += 1
 
-            self.result_min = minimize(self.func, initial_guess, method='SLSQP', constraints=constraints, tol=0.001, callback=callback_min)
+            self.result_min = minimize(self.func, initial_guess, method='SLSQP', constraints=constraints, tol=0.001, callback=callback_min, options=options)
 
         else:
             def neg_func(x):
@@ -153,7 +169,7 @@ class OptimizationApp(tk.Tk):
                 self.intermediate_steps_max.append(xk.copy())
                 self.iteration_max += 1
 
-            self.result_max = minimize(neg_func, initial_guess, method='SLSQP', constraints=constraints, tol=0.001, callback=callback_max)
+            self.result_max = minimize(neg_func, initial_guess, method='SLSQP', constraints=constraints, tol=0.001, callback=callback_max, options=options)
 
     def calculate(self):
         self.button_show_3d.config(state=tk.NORMAL)
@@ -176,6 +192,7 @@ class OptimizationApp(tk.Tk):
             self.result_text_min += f"Кол-во итераций: {self.iteration_min}\n"
         else:
             self.result_text_min += "Решение не найдено.\n"
+            self.result_text_min += f"Кол-во итераций: {self.iteration_min}\n"
 
         if self.result_max.success:
             self.result_text_max += f"Точка максимума найдена в точке (x1,x2): {self.result_max.x}\n"
@@ -183,6 +200,7 @@ class OptimizationApp(tk.Tk):
             self.result_text_max += f"Кол-во итераций: {self.iteration_max}\n"
         else:
             self.result_text_max += "Решение не найдено.\n"
+            self.result_text_max += f"Кол-во итераций: {self.iteration_max}\n"
 
         self.results_label_min = tk.Label(results_window, text=self.result_text_min, bg=self.label_bg)
         self.results_label_min.grid(row=0, column=0, padx=10, pady=10)
@@ -312,8 +330,20 @@ class OptimizationApp(tk.Tk):
                 Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
                 contour = self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors=next(self.colors))
                 self.ax.clabel(contour, inline=True, fontsize=8, fmt={float(bound): f'{constraint}'})
-            elif "==" in constraint:
-                expr, bound = constraint.split("==")
+            elif ">" in constraint:
+                expr, bound = constraint.split(">")
+                expr = expr.replace("x[1]", "X").replace("x[2]", "Y")
+                Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
+                contour = self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors=next(self.colors))
+                self.ax.clabel(contour, inline=True, fontsize=8, fmt={float(bound): f'{constraint}'})
+            elif "<" in constraint:
+                expr, bound = constraint.split("<")
+                expr = expr.replace("x[1]", "X").replace("x[2]", "Y")
+                Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
+                contour = self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors=next(self.colors))
+                self.ax.clabel(contour, inline=True, fontsize=8, fmt={float(bound): f'{constraint}'})
+            elif "=" in constraint:
+                expr, bound = constraint.split("=")
                 expr = expr.replace("x[1]", "X").replace("x[2]", "Y")
                 Z_constraint = eval(expr, {}, {"X": X, "Y": Y})
                 contour = self.ax.contour(X, Y, Z_constraint, levels=[float(bound)], colors=next(self.colors))
@@ -379,8 +409,16 @@ class OptimizationApp(tk.Tk):
                 expr, bound = constraint.split(">=")
                 expr = expr.replace("x[1]", "X").replace("x[2]", "Y")
                 feasible = feasible & (eval(expr, {}, {"X": X, "Y": Y}) >= float(bound))
-            elif "==" in constraint:
-                expr, bound = constraint.split("==")
+            elif ">" in constraint:
+                expr, bound = constraint.split(">")
+                expr = expr.replace("x[1]", "X").replace("x[2]", "Y")
+                feasible = feasible & (eval(expr, {}, {"X": X, "Y": Y}) > float(bound))
+            elif "<" in constraint:
+                expr, bound = constraint.split("<")
+                expr = expr.replace("x[1]", "X").replace("x[2]", "Y")
+                feasible = feasible & (eval(expr, {}, {"X": X, "Y": Y}) < float(bound))
+            elif "=" in constraint:
+                expr, bound = constraint.split("=")
                 expr = expr.replace("x[1]", "X").replace("x[2]", "Y")
                 feasible = feasible & (eval(expr, {}, {"X": X, "Y": Y}) == float(bound))
 
