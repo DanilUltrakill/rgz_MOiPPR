@@ -32,8 +32,8 @@ class OptimizationApp(tk.Tk):
         self.left_frame = tk.Frame(self, bg=self["bg"])
         self.right_frame = tk.Frame(self, bg=self["bg"])
         
-        self.left_frame.grid(row=0, column=0, sticky="nsew", padx=50)  # Используем grid для размещения фреймов
-        self.right_frame.grid(row=0, column=1, sticky="nsew", padx=0)
+        self.left_frame.grid(row=0, column=0, sticky="nsew", padx=50, pady=10)  # Используем grid для размещения фреймов
+        self.right_frame.grid(row=0, column=1, sticky="nsew", padx=0, pady=25)
     
         # Entry для целевой функции
         self.label_func = tk.Label(self.left_frame, text="Целевая функция (например, (x[1]-3)**2 + x[2]**2):", bg=self.label_bg)
@@ -74,23 +74,23 @@ class OptimizationApp(tk.Tk):
             self.constraint_entries.append(entry_constraint)
 
         # Кнопка для добавления дополнительных ограничений
-        self.button_add_constraint = tk.Button(self.right_frame, text="Добавить ограничение", command=self.add_constraint, bg=self.button_bg, activebackground=self.activ_bg)
+        self.button_add_constraint = tk.Button(self.right_frame, text="Добавить ограничение", width=20, command=self.add_constraint, bg=self.button_bg, activebackground=self.activ_bg)
         self.button_add_constraint.pack(pady=self.button_pady)
 
         # Кнопка для удаления последнего ограничения
-        self.button_remove_constraint = tk.Button(self.right_frame, text="Удалить ограничение", command=self.remove_constraint, bg=self.button_bg, activebackground=self.activ_bg)
+        self.button_remove_constraint = tk.Button(self.right_frame, text="Удалить ограничение",width=20, command=self.remove_constraint, bg=self.button_bg, activebackground=self.activ_bg)
         self.button_remove_constraint.pack(pady=self.button_pady)
 
         # Кнопка для начала оптимизации
-        self.button_optimize = tk.Button(self.right_frame, text="Решить", command=self.calculate, bg=self.button_bg, activebackground=self.activ_bg)
+        self.button_optimize = tk.Button(self.right_frame, text="Решить",width=20, command=self.calculate, bg=self.button_bg, activebackground=self.activ_bg)
         self.button_optimize.pack(pady=self.button_pady)
 
         # Кнопка для отображения графика
-        self.button_show_graph = tk.Button(self.right_frame, text="Показать график", command=self.open_graph_window, bg=self.button_bg, state=tk.DISABLED, activebackground=self.activ_bg)
+        self.button_show_graph = tk.Button(self.right_frame, text="Показать график",width=20, command=self.open_graph_window, bg=self.button_bg, state=tk.DISABLED, activebackground=self.activ_bg)
         self.button_show_graph.pack(pady=self.button_pady)
 
         # Кнопка для отображения 3D-модели
-        self.button_show_3d = tk.Button(self.right_frame, text="Показать 3D модель", command=self.open_3d_window, state=tk.DISABLED, bg=self.button_bg, activebackground=self.activ_bg)
+        self.button_show_3d = tk.Button(self.right_frame, text="Показать 3D модель",width=20, command=self.open_3d_window, state=tk.DISABLED, bg=self.button_bg, activebackground=self.activ_bg)
         self.button_show_3d.pack(pady=self.button_pady)
 
     
@@ -212,15 +212,15 @@ class OptimizationApp(tk.Tk):
             self.result_text_max += f"Кол-во итераций: {self.iteration_max+1}\n"
 
         self.results_label_min = tk.Label(results_window, text=self.result_text_min, bg=self.label_bg)
-        self.results_label_min.grid(row=0, column=0, padx=10, pady=10)
+        self.results_label_min.grid(row=0, column=0, padx=50, pady=10)
 
         self.results_label_max = tk.Label(results_window, text=self.result_text_max, bg=self.label_bg)
-        self.results_label_max.grid(row=0, column=1, padx=10, pady=10)
+        self.results_label_max.grid(row=0, column=1, padx=50, pady=10)
 
-        self.show_path_button = tk.Button(results_window, text="Показать каждую итерацию", command=lambda: self.show_solution_path(results_window), bg=self.button_bg, activebackground=self.activ_bg)
+        self.show_path_button = tk.Button(results_window, text="Показать каждую итерацию",width=30, command=lambda: self.show_solution_path(results_window), bg=self.button_bg, activebackground=self.activ_bg)
         self.show_path_button.grid(row=1, column=0, columnspan=2, pady=10)
 
-        self.hide_path_button = tk.Button(results_window, text="Скрыть", command=lambda: self.hide_solution_path(), bg=self.button_bg, activebackground=self.activ_bg)
+        self.hide_path_button = tk.Button(results_window, text="Скрыть",width=30, command=lambda: self.hide_solution_path(), bg=self.button_bg, activebackground=self.activ_bg)
         self.hide_path_button.grid(row=1, column=0, columnspan=2, pady=10)
         self.hide_path_button.grid_remove()
 
