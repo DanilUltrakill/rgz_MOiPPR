@@ -49,11 +49,19 @@ class OptimizationApp(tk.Tk):
         self.entry_initial.insert(0, "0,0")  # Значение по умолчанию
         self.entry_initial.pack(pady=self.entry_pady)
 
+        # Entry для количества итераций
         self.label_maxiter = tk.Label(self.left_frame, text="Максимальное кол-во итераций (например, 100):", bg=self.label_bg)
         self.label_maxiter.pack()
         self.entry_maxiter = tk.Entry(self.left_frame, width=50)
         self.entry_maxiter.insert(0, "100")  # Значение по умолчанию
         self.entry_maxiter.pack(pady=self.entry_pady)
+
+        # Entry для точности решения
+        self.label_tol = tk.Label(self.left_frame, text="Введите точность решения (например, 0.001):", bg=self.label_bg)
+        self.label_tol.pack()
+        self.entry_tol = tk.Entry(self.left_frame, width=50)
+        self.entry_tol.insert(0, "0.001")  # Значение по умолчанию
+        self.entry_tol.pack(pady=self.entry_pady)
 
         # Entry для первого ограничения
         self.constraint_entries = []
@@ -95,6 +103,7 @@ class OptimizationApp(tk.Tk):
 
     
         self.update_constraint_buttons()
+
     def update_constraint_buttons(self):
         if len(self.constraint_entries) <= 1:
             self.button_remove_constraint.config(state=tk.DISABLED)
@@ -153,6 +162,8 @@ class OptimizationApp(tk.Tk):
 
         max_iter = int(self.entry_maxiter.get())
 
+        tol_input = float(self.entry_tol.get())
+
         options = {'maxiter': max_iter}
 
         constraints = self.parse_constraints()
@@ -165,7 +176,7 @@ class OptimizationApp(tk.Tk):
                 self.intermediate_steps_min.append(xk.copy())
                 self.iteration_min += 1
 
-            self.result_min = minimize(self.func, initial_guess, method='SLSQP', constraints=constraints, tol=0.001, callback=callback_min, options=options)
+            self.result_min = minimize(self.func, initial_guess, method='SLSQP', constraints=constraints, tol=tol_input, callback=callback_min, options=options)
 
         else:
             def neg_func(x):
@@ -178,7 +189,7 @@ class OptimizationApp(tk.Tk):
                 self.intermediate_steps_max.append(xk.copy())
                 self.iteration_max += 1
 
-            self.result_max = minimize(neg_func, initial_guess, method='SLSQP', constraints=constraints, tol=0.001, callback=callback_max, options=options)
+            self.result_max = minimize(neg_func, initial_guess, method='SLSQP', constraints=constraints, tol=tol_input, callback=callback_max, options=options)
 
     def calculate(self):
         self.button_show_3d.config(state=tk.NORMAL)
@@ -239,12 +250,19 @@ class OptimizationApp(tk.Tk):
                 self.max_path_text += f"Итерация {i}: x1,x2 = {step}; f(x1,x2) = {self.func(step)}\n"
         else:
             self.max_path_text = "Не удалось найти экстремум\n"
-
+        
+              
         self.min_path_label = tk.Label(parent_window, text=self.min_path_text, bg = self.label_bg)
         self.max_path_label = tk.Label(parent_window, text=self.max_path_text, bg = self.label_bg)
 
-        self.min_path_label.grid(row=2, column=0, padx=10, pady=10)
+        """ self.min_path_label.grid(row=2, column=0, padx=10, pady=10)
         self.max_path_label.grid(row=2, column=1, padx=10, pady=10)
+
+        self.scroll_bar_min=tk.Scrollbar(self.min_path_label,orient="vertical")
+        self.scroll_bar_min.pack(side="right",fill="y")
+
+        self.scroll_bar_max=tk.Scrollbar(self.max_path_label,orient="vertical")
+        self.scroll_bar_max.pack(side="right",fill="y") """
 
         self.show_path_button.grid_remove()
         self.hide_path_button.grid()
