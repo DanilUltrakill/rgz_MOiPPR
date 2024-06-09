@@ -28,29 +28,36 @@ class OptimizationApp(tk.Tk):
         self.create_widgets()
 
     def create_widgets(self):
+        # Создаем два фрейма: левый для полей ввода и правый для кнопок
+        self.left_frame = tk.Frame(self, bg=self["bg"])
+        self.right_frame = tk.Frame(self, bg=self["bg"])
+        
+        self.left_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+
         # Entry для целевой функции
-        self.label_func = tk.Label(self, text="Целевая функция (например, (x[1]-3)**2 + x[2]**2):", bg=self.label_bg)
+        self.label_func = tk.Label(self.left_frame, text="Целевая функция (например, (x[1]-3)**2 + x[2]**2):", bg=self.label_bg)
         self.label_func.pack()
-        self.entry_func = tk.Entry(self, width=50)
+        self.entry_func = tk.Entry(self.left_frame, width=50)
         self.entry_func.insert(0, "(x[1]-3)**2 + x[2]**2")  # Значение по умолчанию
-        self.entry_func.pack(pady = self.entry_pady)
+        self.entry_func.pack(pady=self.entry_pady)
 
         # Entry для начального предположения
-        self.label_initial = tk.Label(self, text="Начальная точка (например, 0,0):", bg=self.label_bg)
+        self.label_initial = tk.Label(self.left_frame, text="Начальная точка (например, 0,0):", bg=self.label_bg)
         self.label_initial.pack()
-        self.entry_initial = tk.Entry(self, width=50)
+        self.entry_initial = tk.Entry(self.left_frame, width=50)
         self.entry_initial.insert(0, "0,0")  # Значение по умолчанию
-        self.entry_initial.pack(pady = self.entry_pady)
+        self.entry_initial.pack(pady=self.entry_pady)
 
-        self.label_maxiter = tk.Label(self, text="Максимальное кол-во итераций (например, 50):", bg=self.label_bg)
+        self.label_maxiter = tk.Label(self.left_frame, text="Максимальное кол-во итераций (например, 100):", bg=self.label_bg)
         self.label_maxiter.pack()
-        self.entry_maxiter = tk.Entry(self, width=50)
+        self.entry_maxiter = tk.Entry(self.left_frame, width=50)
         self.entry_maxiter.insert(0, "100")  # Значение по умолчанию
-        self.entry_maxiter.pack(pady = self.entry_pady)
+        self.entry_maxiter.pack(pady=self.entry_pady)
 
         # Entry для первого ограничения
         self.constraint_entries = []
-        self.label_constraints = tk.Label(self, text="Ограничение (например, x[1] + x[2] <= 2):", bg=self.label_bg)
+        self.label_constraints = tk.Label(self.left_frame, text="Ограничение (например, x[1] + x[2] <= 2):", bg=self.label_bg)
         self.label_constraints.pack()
 
         # Значения ограничений по умолчанию
@@ -61,32 +68,33 @@ class OptimizationApp(tk.Tk):
             "x[1] <= 4"
         ]
         for constraint in default_constraints:
-            entry_constraint = tk.Entry(self, width=50)
+            entry_constraint = tk.Entry(self.left_frame, width=50)
             entry_constraint.insert(0, constraint)
             entry_constraint.pack()
             self.constraint_entries.append(entry_constraint)
 
         # Кнопка для добавления дополнительных ограничений
-        self.button_add_constraint = tk.Button(self, text="Добавить ограничение", command=self.add_constraint, bg=self.button_bg, activebackground=self.activ_bg)
-        self.button_add_constraint.pack(pady = self.button_pady)
+        self.button_add_constraint = tk.Button(self.right_frame, text="Добавить ограничение", command=self.add_constraint, bg=self.button_bg, activebackground=self.activ_bg)
+        self.button_add_constraint.pack(pady=self.button_pady)
 
         # Кнопка для удаления последнего ограничения
-        self.button_remove_constraint = tk.Button(self, text="Удалить ограничение", command=self.remove_constraint, bg=self.button_bg, activebackground=self.activ_bg)
-        self.button_remove_constraint.pack(pady = self.button_pady)
+        self.button_remove_constraint = tk.Button(self.right_frame, text="Удалить ограничение", command=self.remove_constraint, bg=self.button_bg, activebackground=self.activ_bg)
+        self.button_remove_constraint.pack(pady=self.button_pady)
 
         # Кнопка для начала оптимизации
-        self.button_optimize = tk.Button(self, text="Решить", command=self.calculate, bg=self.button_bg, activebackground=self.activ_bg)
-        self.button_optimize.pack(pady = self.button_pady)
+        self.button_optimize = tk.Button(self.right_frame, text="Решить", command=self.calculate, bg=self.button_bg, activebackground=self.activ_bg)
+        self.button_optimize.pack(pady=self.button_pady)
 
         # Кнопка для отображения графика
-        self.button_show_graph = tk.Button(self, text="Показать график", command=self.open_graph_window, bg=self.button_bg, state=tk.DISABLED, activebackground=self.activ_bg)
-        self.button_show_graph.pack(pady = self.button_pady)
+        self.button_show_graph = tk.Button(self.right_frame, text="Показать график", command=self.open_graph_window, bg=self.button_bg, state=tk.DISABLED, activebackground=self.activ_bg)
+        self.button_show_graph.pack(pady=self.button_pady)
 
         # Кнопка для отображения 3D-модели
-        self.button_show_3d = tk.Button(self, text="Показать 3D модель", command=self.open_3d_window, state=tk.DISABLED, bg=self.button_bg, activebackground=self.activ_bg)
-        self.button_show_3d.pack(pady = self.button_pady)
+        self.button_show_3d = tk.Button(self.right_frame, text="Показать 3D модель", command=self.open_3d_window, state=tk.DISABLED, bg=self.button_bg, activebackground=self.activ_bg)
+        self.button_show_3d.pack(pady=self.button_pady)
 
         self.update_constraint_buttons()
+
 
     def update_constraint_buttons(self):
         if len(self.constraint_entries) <= 1:
