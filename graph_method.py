@@ -255,10 +255,10 @@ class OptimizationApp(tk.Tk):
         self.min_path_label = tk.Label(parent_window, text=self.min_path_text, bg = self.label_bg)
         self.max_path_label = tk.Label(parent_window, text=self.max_path_text, bg = self.label_bg)
 
-        """ self.min_path_label.grid(row=2, column=0, padx=10, pady=10)
+        self.min_path_label.grid(row=2, column=0, padx=10, pady=10)
         self.max_path_label.grid(row=2, column=1, padx=10, pady=10)
 
-        self.scroll_bar_min=tk.Scrollbar(self.min_path_label,orient="vertical")
+        """ self.scroll_bar_min=tk.Scrollbar(self.min_path_label,orient="vertical")
         self.scroll_bar_min.pack(side="right",fill="y")
 
         self.scroll_bar_max=tk.Scrollbar(self.max_path_label,orient="vertical")
