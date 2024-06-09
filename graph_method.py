@@ -110,9 +110,10 @@ class OptimizationApp(tk.Tk):
     def add_constraint(self):
         if len(self.constraint_entries) < 5:
             entry_constraint = tk.Entry(self, width=50)
-            entry_constraint.pack(before=self.button_add_constraint)
+            entry_constraint.pack()
             self.constraint_entries.append(entry_constraint)
             self.update_constraint_buttons()
+
 
     def remove_constraint(self):
         if len(self.constraint_entries) > 1:
